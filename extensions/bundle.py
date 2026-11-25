@@ -27,7 +27,10 @@ if not os.path.exists(build_path):
 
 crx = f"{name}.crx"
 path = os.path.join(folder, crx)
-urllib.request.urlretrieve(url, path)
+if os.path.isfile(url):
+    shutil.copyfile(url, path)
+else:
+    urllib.request.urlretrieve(url, path)
 data = open(path, "rb").read()
 header = data[12:12 + struct.unpack("<I", data[8:12])[0]]
 i = 0

@@ -17,6 +17,14 @@ For the latest builds, see [**Releases**](https://github.com/jqssun/android-tita
 
 ## Usage
 
+### Recipe mode
+
+On a recipe page, tap the floating **Recipe mode** button to read the ingredients
+and steps in the current tab. It checks structured recipe metadata in any
+language and recognizes common recipe headings when metadata is missing.
+Detection and the in-browser view run locally. **Open in Skim** passes the HTTPS
+link to the separately installed Skim app for AI summarization and serving controls.
+
 ### Installing Extensions
 
 You can install extensions from the following sources:
@@ -89,6 +97,11 @@ flowchart TD
 ```
 
 ## Building
+
+For an Android emulator development APK, run
+`TITANIUM_DEV_TARGET_CPU=x64 ./build.sh` from a fresh Ubuntu checkout with
+submodules. Use `arm64` for an ARM64 target. This builds one APK with Chromium's
+development signing configuration and the fork's separate package ID.
 
 All releases are built using [Actions](https://github.com/jqssun/android-titanium-browser/actions). Current releases can also be attested using [GitHub CLI](https://github.com/cli/cli).
 

@@ -1,6 +1,8 @@
 #!/bin/bash
 source common.sh
-set_keys
+if [ -z "${TITANIUM_DEV_TARGET_CPU:-}" ]; then
+    set_keys
+fi
 export VERSION=$(grep -m1 -o '[0-9]\+\(\.[0-9]\+\)\{3\}' vanadium/args.gn)
 export CHROMIUM_SOURCE=https://chromium.googlesource.com/chromium/src.git # https://github.com/chromium/chromium.git
 export DEBIAN_FRONTEND=noninteractive
@@ -35,6 +37,19 @@ gclient runhooks
 
 source $SCRIPT_DIR/patch.sh
 cp $SCRIPT_DIR/args.gn out/Default/args.gn
+if [ -n "${TITANIUM_DEV_TARGET_CPU:-}" ]; then
+    case "$TITANIUM_DEV_TARGET_CPU" in
+        arm64|x64) ;;
+        *) echo "Unsupported Titanium development ABI" >&2; exit 1 ;;
+    esac
+    sed -i "s/^target_cpu = .*/target_cpu = \"$TITANIUM_DEV_TARGET_CPU\"/" out/Default/args.gn
+    sed -i 's/^chrome_public_manifest_package = .*/chrome_public_manifest_package = "io.github.oferfeldman.titanium"/' out/Default/args.gn
+    sed -i 's/^symbol_level = .*/symbol_level = 0/; s/^generate_linker_map = .*/generate_linker_map = false/' out/Default/args.gn
+    gn gen out/Default && autoninja -j "${TITANIUM_BUILD_JOBS:-8}" -C out/Default chrome_public_apk || exit 1
+    mkdir -p out/release
+    cp out/Default/apks/ChromePublic.apk "out/release/TitaniumRecipeMode-$TITANIUM_DEV_TARGET_CPU.apk"
+    exit $?
+fi
 gn gen out/Default # gn args out/Default; echo 'treat_warnings_as_errors = false' >> out/Default/args.gn
 mkdir -p out/tmp out/release
 

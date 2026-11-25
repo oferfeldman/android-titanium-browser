@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Titanium Recipe Mode",
+  "version": "1.0.0",
+  "description": "Open a focused recipe view directly from a recipe page.",
+  "content_scripts": [{
+    "matches": ["https://*/*"],
+    "js": ["recipe.js"],
+    "run_at": "document_idle"
+  }]
+}

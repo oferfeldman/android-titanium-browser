@@ -44,5 +44,14 @@ hooks = [
               'titanium',
               'https://github.com/jqssun/android-titanium-extension/releases/latest/download/titanium.crx']
   },
+  {
+    'name': 'bundle_recipe_mode',
+    'condition': 'checkout_android',
+    'action': ['python3',
+              '../extensions/bundle.py',
+              '../extensions/dist',
+              'recipe_mode',
+              '../extensions/recipe-mode.crx']
+  },
 ]
 target_os = ['android']
