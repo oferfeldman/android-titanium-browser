@@ -14,6 +14,10 @@ git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools
 export PATH="$PWD/depot_tools:$PATH"
 mkdir -p chromium/src/out/Default; cd chromium/src
 git init
+if [ -n "${TITANIUM_DEV_TARGET_CPU:-}" ]; then
+    git config user.name "Titanium development build"
+    git config user.email "titanium-build@localhost"
+fi
 git remote add origin $CHROMIUM_SOURCE
 git fetch --depth 1 $CHROMIUM_SOURCE +refs/tags/$VERSION:chromium_$VERSION
 git checkout $VERSION
