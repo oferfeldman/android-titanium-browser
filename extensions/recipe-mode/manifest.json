@@ -1,8 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Titanium Recipe Mode",
-  "version": "1.0.1",
-  "description": "Open a focused recipe view directly from a recipe page.",
+  "version": "1.1.0",
+  "description": "Turn recipe pages into Skim cards using GPT-6.2 Sol.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://api.openai.com/*"],
+  "background": { "service_worker": "background.js" },
   "content_scripts": [{
     "matches": ["https://*/*"],
     "js": ["recipe.js"],

@@ -19,11 +19,13 @@ For the latest builds, see [**Releases**](https://github.com/jqssun/android-tita
 
 ### Recipe mode
 
-On a recipe page, tap the floating **Recipe mode** button to read the ingredients
-and steps in the current tab. It checks structured recipe metadata in any
-language and recognizes common recipe headings when metadata is missing.
-Detection and the in-browser view run locally. **Open in Skim** passes the HTTPS
-link to the separately installed Skim app for AI summarization and serving controls.
+On a recipe page, tap the floating **Recipe mode** button to replace the current
+tab with Skim's recipe cards. It checks structured recipe metadata in any language
+and recognizes common ingredient and preparation headings. Search results are
+excluded. After you tap the button, Skim uses GPT‑6.2 Sol Ultrafast, keeps the
+source image when available, and offers serving controls when the recipe gives a
+numeric yield. The first run asks for an OpenAI API key, which Titanium saves in
+its own extension storage. Use the browser's Back button to return to the page.
 
 ### Installing Extensions
 

@@ -1,0 +1,47 @@
+@font-face {
+  font-family:Feldman;
+  src:url("feldman.woff2") format("woff2");
+  font-weight:100 900;
+  font-display:swap;
+}
+:root {
+  color-scheme: light dark;
+  --paper:#f5f8f3; --card:#fff; --ink:#182b20; --muted:#506258; --rule:#d3e0d5; --accent:#305d3c;
+}
+@media (prefers-color-scheme:dark) {
+  :root { --paper:#17211a; --card:#232f26; --ink:#eef4eb; --muted:#bdcbbc; --rule:#46564a; --accent:#bee4af; }
+}
+* { box-sizing:border-box; }
+[hidden] { display:none!important; }
+body { margin:0; background:var(--paper); color:var(--ink); font:500 1rem/1.5 Feldman,system-ui,sans-serif; }
+main { max-width:54rem; margin:auto; padding:16px clamp(16px,4vw,32px) 40px; overflow-wrap:anywhere; }
+nav,.controls { display:flex; align-items:center; flex-wrap:wrap; justify-content:space-between; gap:8px; }
+nav { margin-bottom:12px; }
+a { color:var(--accent); }
+button,input { font:inherit; color:inherit; background:var(--card); min-height:44px; border:1px solid var(--rule); border-radius:16px; padding:6px 12px; }
+button { cursor:pointer; }
+button:active { transform:scale(.96); }
+input { width:100%; max-width:29ch; }
+input[type="number"] { width:7ch; }
+#status { color:var(--muted); }
+#status:empty { display:none; }
+.card { padding:clamp(15px,4vw,24px); border:1px solid var(--rule); border-radius:22px; background:var(--card); margin-block:10px; }
+h1,h2,p,dl,dd,ol,ul { margin:0; }
+h1 { font-size:clamp(1.75rem,6vw,3rem); line-height:1.13; }
+h2 { color:var(--accent); font-size:1.06rem; margin-block-end:10px; }
+p { margin-block:.65rem; white-space:pre-line; }
+.hero img { display:block; width:100%; max-height:360px; aspect-ratio:16/9; object-fit:cover; border-radius:16px; margin-block-end:16px; }
+.row { display:grid; grid-template-columns:minmax(0,1fr) minmax(4.75rem,34%); gap:12px; align-items:baseline; padding-block:9px; }
+.row+.row,li+li { border-block-start:1px solid var(--rule); }
+dd { text-align:end; color:var(--accent); font-weight:650; font-variant-numeric:tabular-nums; }
+ol,ul { padding-inline-start:1.5em; }
+li { padding-block:8px; }
+.controls { justify-content:start; }
+.controls label { display:flex; align-items:center; gap:6px; }
+input[type="checkbox"] { width:auto; min-height:0; accent-color:var(--accent); }
+@media (prefers-reduced-motion:no-preference) {
+  .reveal .card { animation:enter .28s cubic-bezier(.2,0,0,1) both; }
+  .reveal .card:nth-child(3) { animation-delay:.07s; }
+  .reveal .card:nth-child(n+4) { animation-delay:.13s; }
+}
+@keyframes enter { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
