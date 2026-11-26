@@ -20,8 +20,9 @@ const skimReader = (() => {
 
   function close() {
     if (!active) return;
-    const { body, host, inert, launcher, port } = active;
+    const { body, host, inert, launcher, port, transition } = active;
     active = null;
+    transition?.skipTransition();
     port?.disconnect();
     body.inert = inert;
     host.remove();
@@ -47,13 +48,14 @@ const skimReader = (() => {
     const stack = make("div");
     stack.id = "reader";
     const hero = make("header", null, "card skim-hero");
-    const title = make("h1", page.title);
+    const title = make("h1", page.headline?.innerText.trim() || page.title);
     const answer = make("p");
     const summary = make("div");
     summary.append(title, answer);
     hero.append(summary);
+    let image;
     if (page.image.startsWith("https://")) {
-      const image = make("img");
+      image = make("img");
       image.src = page.image;
       image.alt = "";
       image.referrerPolicy = "no-referrer";
@@ -67,6 +69,7 @@ const skimReader = (() => {
     let hebrew, language, servings, waitingForKey;
     const state = { body, host, inert: body.inert, launcher };
     const cards = [];
+    const pairs = new Map([[page.headline, title], [page.sourceImage, image]]);
     const label = (english, hebrewText) => hebrew ? hebrewText : english;
     function setLanguage(lang, direction) {
       hebrew = /^(he|iw)([-_]|$)/i.test(lang) || /[\u0590-\u05ff]/.test(page.title);
@@ -83,6 +86,10 @@ const skimReader = (() => {
     }
     setLanguage(page.language, page.direction);
     if (page.accent != null) surface.style.setProperty("--site-hue", String(page.accent));
+    surface.dataset.theme = page.theme.dark ? "dark" : "light";
+    surface.style.setProperty("--page-paper", page.theme.paper);
+    surface.style.setProperty("--page-font", page.theme.font);
+    if (page.theme.ink) surface.style.setProperty("--page-ink", page.theme.ink);
     back.onclick = close;
     retry.onclick = () => start(state.ready);
     surface.addEventListener("keydown", event => { if (event.key === "Escape") close(); });
@@ -108,7 +115,15 @@ const skimReader = (() => {
         const entry = cardAt(index);
         entry.heading.textContent = section.title;
         const lines = make("div", null, "skim-preview-lines");
-        for (const text of section.lines) lines.append(make("p", text));
+        pairs.set(section.heading, entry.heading);
+        for (const { node, text } of section.lines) {
+          const excerpt = make("p", text);
+          const source = getComputedStyle(node);
+          excerpt.style.fontWeight = source.fontWeight;
+          excerpt.style.fontStyle = source.fontStyle;
+          lines.append(excerpt);
+          pairs.set(node, excerpt);
+        }
         if (section.lines.length) {
           entry.preview.append(lines);
           entry.card.classList.add("previewing");
@@ -161,7 +176,7 @@ const skimReader = (() => {
     function showSection(section, index) {
       const entry = cardAt(index);
       const ingredients = section.kind === "ingredients";
-      const list = make(ingredients ? "dl" : section.kind === "steps" ? "ol" : "ul", null, "motion-items");
+      const list = make(ingredients ? "dl" : section.kind === "steps" ? "ol" : "ul", null, "skim-list");
       const labels = [];
       for (const row of section.rows) {
         if (ingredients) {
@@ -195,6 +210,76 @@ const skimReader = (() => {
 
     function finish() {
       status.hidden = true;
+    }
+
+    function mount(css) {
+      shadow.adoptedStyleSheets = [css];
+      host.style.cssText = "all:initial!important;display:block!important;position:fixed!important;inset:0!important;z-index:2147483647!important";
+      showPreviews();
+      const reveal = () => {
+        if (active !== state) return;
+        body.inert = true;
+        document.documentElement.append(host);
+        back.focus({ preventScroll: true });
+      };
+      if (!document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        reveal();
+        return;
+      }
+      const restore = [];
+      const targets = [];
+      const prefix = `skim-${crypto.randomUUID()}`;
+      for (const [source, target] of pairs) {
+        if (!source || !target) continue;
+        const rect = source.getBoundingClientRect();
+        if (!rect.width || !rect.height || rect.bottom <= 0 || rect.top >= innerHeight) continue;
+        const name = `${prefix}-${restore.length}`;
+        const property = "view-transition-name";
+        const previous = source.style.getPropertyValue(property);
+        const priority = source.style.getPropertyPriority(property);
+        source.style.setProperty(property, name, "important");
+        targets.push({ target, name });
+        restore.push(() => {
+          if (previous) source.style.setProperty(property, previous, priority);
+          else source.style.removeProperty(property);
+        });
+      }
+      const transition = document.startViewTransition(() => {
+        restore.forEach(reset => reset());
+        reveal();
+        if (active !== state) return;
+        // The document transition can only pair names in the same tree scope.
+        // Use a temporary light-DOM copy of each destination during the morph.
+        for (const entry of targets) {
+          const { target, name } = entry;
+          const bounds = target.getBoundingClientRect();
+          if (!bounds.width || !bounds.height) continue;
+          const ghost = target.cloneNode(true);
+          ghost.setAttribute("aria-hidden", "true");
+          const style = getComputedStyle(target);
+          ghost.style.cssText = "all:initial!important;position:fixed!important;pointer-events:none!important;z-index:2147483647!important";
+          for (const property of ["direction", "display", "color", "font-family", "font-size", "font-weight",
+            "font-style", "line-height", "letter-spacing", "text-align", "white-space", "overflow",
+            "object-fit", "object-position", "border-radius", "-webkit-line-clamp", "-webkit-box-orient"]) {
+            ghost.style.setProperty(property, style.getPropertyValue(property), "important");
+          }
+          for (const [property, value] of Object.entries({
+            left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height,
+          })) ghost.style.setProperty(property, `${value}px`, "important");
+          ghost.style.setProperty("view-transition-name", name, "important");
+          target.style.visibility = "hidden";
+          document.documentElement.append(ghost);
+          entry.ghost = ghost;
+        }
+      });
+      state.transition = transition;
+      const clearGhosts = () => targets.forEach(({ target, ghost }) => {
+        if (!ghost) return;
+        ghost.remove();
+        target.style.removeProperty("visibility");
+      });
+      transition.finished.then(clearGhosts, clearGhosts);
+      return transition.ready.catch(() => transition.updateCallbackDone);
     }
 
     function start(ready) {
@@ -250,13 +335,7 @@ const skimReader = (() => {
     }
     active = state;
     state.ready = styles().then(css => {
-      if (active !== state) return;
-      shadow.adoptedStyleSheets = [css];
-      host.style.cssText = "all:initial!important;display:block!important;position:fixed!important;inset:0!important;z-index:2147483647!important";
-      body.inert = true;
-      document.documentElement.append(host);
-      back.focus({ preventScroll: true });
-      showPreviews();
+      if (active === state) return mount(css);
     }, error => {
       if (active === state) close();
       throw error;

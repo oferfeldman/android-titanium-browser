@@ -88,8 +88,42 @@
       } catch { return ""; }
     }).find(Boolean) || "";
 
+    const sourceImage = [...root.querySelectorAll("img")].find(node => node.currentSrc === image || node.src === image);
     return { root, recipe, image, accent: siteAccent(root), title: clean(recipe?.name) || clean(headline?.textContent) || document.title,
-      headings };
+      headings, headline, sourceImage };
+  }
+
+  function siteTheme(root, headline) {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const pixel = canvas.getContext("2d", { willReadFrequently: true });
+    function color(value) {
+      pixel.clearRect(0, 0, 1, 1);
+      pixel.fillStyle = value;
+      pixel.fillRect(0, 0, 1, 1);
+      return pixel.getImageData(0, 0, 1, 1).data;
+    }
+    function luminance(rgb) {
+      const [r, g, b] = [...rgb].slice(0, 3).map(value => {
+        const channel = value / 255;
+        return channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4;
+      });
+      return .2126 * r + .7152 * g + .0722 * b;
+    }
+    const text = getComputedStyle(headline ?? root);
+    const scheme = getComputedStyle(document.documentElement).colorScheme;
+    const darkDefault = scheme.includes("dark") && (!scheme.includes("light") || matchMedia("(prefers-color-scheme: dark)").matches);
+    let paper = darkDefault ? "#121212" : "#fff";
+    for (let node = root; node; node = node.parentElement) {
+      const surface = getComputedStyle(node).backgroundColor;
+      if (color(surface)[3] >= 245) { paper = surface; break; }
+    }
+    const bgLight = luminance(color(paper));
+    const fg = color(text.color);
+    const fgLight = luminance(fg);
+    const contrast = (Math.max(bgLight, fgLight) + .05) / (Math.min(bgLight, fgLight) + .05);
+    return { paper, dark: bgLight < .19, ink: fg[3] >= 245 && contrast >= 5 ? text.color : "",
+      font: text.fontFamily };
   }
 
   function capture({ root, recipe, headings, ...page }) {
@@ -115,12 +149,12 @@
       if (heading) {
         section = null;
         if (!seenTitles.has(text) && sections.length < 5) {
-          section = { title: text, lines: [] };
+          section = { title: text, heading: node, lines: [] };
           seenTitles.add(text);
           sections.push(section);
         }
       } else if (!heading && section && section.lines.length < 2) {
-        section.lines.push(text.slice(0, 115));
+        section.lines.push({ node, text: text.slice(0, 160) });
       }
       const safeNode = document.createElement(heading && !node.matches("h1,h2,h3,h4,h5,h6") ? "h3" : node.localName);
       safeNode.textContent = text.slice(0, 1800);
@@ -134,7 +168,7 @@
       paragraph.textContent = clean(root.innerText).slice(0, limit / 2);
       fragments.push(paragraph.outerHTML);
     }
-    return { ...page, html: fragments.join("\n"), sections,
+    return { ...page, html: fragments.join("\n"), sections, theme: siteTheme(root, page.headline),
       structured: metadata && metadata.length <= 12000 ? metadata : "",
       language: document.documentElement.lang || "", direction: document.documentElement.dir };
   }
