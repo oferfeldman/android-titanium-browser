@@ -28,11 +28,15 @@
     const theme = [...document.querySelectorAll('meta[name="theme-color"]')]
       .filter(meta => !meta.media || matchMedia(meta.media).matches)
       .map(meta => meta.content);
-    const header = document.querySelector("header, [role=banner]");
-    const top = document.elementsFromPoint(innerWidth / 2, Math.min(90, innerHeight / 3));
-    const elements = [header, ...top.slice(0, 8), root.querySelector("a[href]")].filter(Boolean);
-    const colors = [...theme, ...elements.map(node => getComputedStyle(node).backgroundColor),
-      ...elements.map(node => getComputedStyle(node).color)];
+    const headers = [...document.querySelectorAll("header, [role=banner], #header, .header")].slice(0, 8);
+    const top = [0.15, 0.5, 0.85].flatMap(x => [32, 72, 128, 180].flatMap(y =>
+      document.elementsFromPoint(innerWidth * x, Math.min(y, innerHeight / 3)).slice(0, 8),
+    ));
+    const elements = [...new Set([...headers, ...top, root.querySelector("a[href]")].filter(Boolean))];
+    const styles = elements.map(node => getComputedStyle(node));
+    const colors = [...theme, ...styles.flatMap(style => [
+      style.backgroundColor, ...(style.backgroundImage.match(/rgba?\([^)]+\)/g) ?? []),
+    ]), ...styles.map(style => style.color)];
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 1;
     const pixel = canvas.getContext("2d", { willReadFrequently: true });
