@@ -80,8 +80,8 @@
 
     const meta = document.querySelector('meta[property="og:image"],meta[name="twitter:image"]')?.content;
     const recipeImage = asArray(recipe?.image).map(value => value?.url ?? value?.contentUrl ?? value).find(Boolean);
-    const articleImage = root.querySelector("figure img, img[width]")?.getAttribute("src");
-    const image = [recipeImage, meta, articleImage].map(value => {
+    const articleImage = root.querySelector("figure img, img[width]");
+    const image = [recipeImage, meta, articleImage?.currentSrc || articleImage?.getAttribute("src")].map(value => {
       try {
         const url = new URL(value, location.href);
         return value && url.protocol === "https:" ? url.href : "";
@@ -89,28 +89,81 @@
     }).find(Boolean) || "";
 
     return { root, recipe, image, accent: siteAccent(root), title: clean(recipe?.name) || clean(headline?.textContent) || document.title,
-      headings: headings.map(node => clean(node.textContent)).filter(Boolean).slice(0, 8) };
+      headings };
+  }
+
+  function capture({ root, recipe, headings, ...page }) {
+    const headingNodes = new Set(headings);
+    const seenTitles = new Set();
+    const sections = [];
+    const fragments = [];
+    const metadata = recipe && JSON.stringify(Object.fromEntries(
+      ["name", "description", "recipeIngredient", "recipeInstructions", "recipeYield", "prepTime",
+        "cookTime", "totalTime", "nutrition"].map(name => [name, recipe[name]]),
+    ));
+    const limit = metadata && metadata.length <= 12000 ? 9000 : 23000;
+    let length = 0;
+    let section;
+    for (const node of root.querySelectorAll("h1,h2,h3,h4,h5,h6,strong,b,p,li,dt,dd,td")) {
+      if (node.closest("nav,footer,aside,form,dialog,[hidden],[aria-hidden=true]")) continue;
+      const heading = headingNodes.has(node) ||
+        (node.matches("p,li") && headingNodes.has(node.querySelector("strong,b")));
+      if (!heading && (node.matches("strong,b") || node.querySelector("li,p"))) continue;
+      if (node.matches("strong,b") && node.parentElement.matches("p,li")) continue;
+      const text = clean(node.textContent);
+      if (!text) continue;
+      if (heading) {
+        section = null;
+        if (!seenTitles.has(text) && sections.length < 5) {
+          section = { title: text, lines: [] };
+          seenTitles.add(text);
+          sections.push(section);
+        }
+      } else if (!heading && section && section.lines.length < 2) {
+        section.lines.push(text.slice(0, 115));
+      }
+      const safeNode = document.createElement(heading && !node.matches("h1,h2,h3,h4,h5,h6") ? "h3" : node.localName);
+      safeNode.textContent = text.slice(0, 1800);
+      const html = safeNode.outerHTML;
+      if (length + html.length > limit) continue;
+      fragments.push(html);
+      length += html.length;
+    }
+    if (!fragments.length) {
+      const paragraph = document.createElement("p");
+      paragraph.textContent = clean(root.innerText).slice(0, limit / 2);
+      fragments.push(paragraph.outerHTML);
+    }
+    return { ...page, html: fragments.join("\n"), sections,
+      structured: metadata && metadata.length <= 12000 ? metadata : "",
+      language: document.documentElement.lang || "", direction: document.documentElement.dir };
   }
 
   const host = document.createElement("div");
   host.style.cssText = "all:initial!important;position:fixed!important;inset:auto 0 0 0!important;z-index:2147483647!important;pointer-events:none!important";
   const shadow = host.attachShadow({ mode: "closed" });
-  const style = document.createElement("style");
-  style.textContent = `
+  const style = new CSSStyleSheet();
+  style.replaceSync(`
     button { display:block; pointer-events:auto; margin:0 auto max(18px,env(safe-area-inset-bottom));
       font:600 16px/1.45 system-ui,sans-serif; color:#fff; background:hsl(var(--site-hue, 137) 38% 27%); border:0;
       border-radius:100px; min-height:48px; padding:0 22px; box-shadow:0 3px 16px #0003;
       transition:scale .18s cubic-bezier(.2,0,0,1); }
     button:active { scale:.96; }
+    button[data-loading]::after { content:""; display:inline-block; margin-inline-start:9px;
+      width:12px; height:12px; border:2px solid currentColor; border-inline-end-color:transparent;
+      border-radius:50%; animation:turn .7s linear infinite; }
+    @keyframes turn { to { transform:rotate(1turn); } }
     @media (prefers-color-scheme:dark) { button { background:hsl(var(--site-hue, 137) 43% 79%); color:#17211a; } }
-    @media (prefers-reduced-motion:reduce) { button { transition:none; } }
-  `;
+    @media (prefers-reduced-motion:reduce) { button,button[data-loading]::after { transition:none; animation:none; } }
+  `);
+  shadow.adoptedStyleSheets = [style];
   const launch = document.createElement("button");
   launch.type = "button";
-  shadow.append(style, launch);
+  shadow.append(launch);
   let current;
   let lastUrl;
   function refresh() {
+    if (lastUrl && lastUrl !== location.href) skimReader.close();
     lastUrl = location.href;
     current = scan();
     if (!current) { host.remove(); return; }
@@ -125,24 +178,19 @@
     if (!event.isTrusted) return;
     if (lastUrl !== location.href) refresh();
     if (!current) return;
+    const originalUrl = location.href;
     launch.disabled = true;
+    launch.dataset.loading = "";
+    launch.setAttribute("aria-busy", "true");
     try {
-      const result = await chrome.runtime.sendMessage({
-        action: "open-recipe",
-        title: current.title,
-        text: (current.root.innerText ?? current.root.textContent).trim().slice(0, 32000),
-        structured: current.recipe ? JSON.stringify(current.recipe).slice(0, 12000) : "",
-        headings: current.headings,
-        image: current.image,
-        accent: current.accent,
-        language: document.documentElement.lang || "",
-        direction: document.documentElement.dir,
-      });
-      if (!result?.ok) throw new Error("Could not open Skim");
+      await new Promise(requestAnimationFrame);
+      if (current && location.href === originalUrl) await skimReader.open(capture(current), launch);
     } catch {
       launch.title = "Could not open Skim. Try again.";
     } finally {
       launch.disabled = false;
+      delete launch.dataset.loading;
+      launch.removeAttribute("aria-busy");
     }
   });
 

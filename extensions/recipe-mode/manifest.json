@@ -1,14 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Titanium Recipe Mode",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "description": "Turn recipe pages into Skim cards using GPT-6.2 Sol.",
   "permissions": ["storage"],
   "host_permissions": ["https://api.openai.com/*"],
-  "background": { "service_worker": "background.js" },
+  "background": { "service_worker": "background.js", "type": "module" },
+  "web_accessible_resources": [{ "resources": ["feldman.woff2"], "matches": ["https://*/*"] }],
   "content_scripts": [{
     "matches": ["https://*/*"],
-    "js": ["recipe.js"],
+    "js": ["reader.js", "recipe.js"],
     "run_at": "document_idle"
   }]
 }

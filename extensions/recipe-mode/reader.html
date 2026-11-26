@@ -5,21 +5,20 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Skim Recipe mode</title>
   <link rel="stylesheet" href="reader.css">
-  <script type="module" src="reader.js"></script>
+  <script type="module" src="settings.js"></script>
 </head>
 <body>
   <main>
-    <nav><a id="original">Open original</a><button id="account" type="button">API key</button></nav>
-    <form id="credentials" class="card" hidden>
+    <h1>Skim settings</h1>
+    <form id="credentials" class="card">
       <label for="key">OpenAI API key</label>
       <p id="key-hint">Titanium saves this key in its own browser storage. It sends the recipe text to OpenAI when you make cards.</p>
       <div class="controls">
         <input id="key" type="password" autocomplete="off" spellcheck="false" required>
-        <button type="submit">Save and skim</button>
+        <button type="submit">Save</button>
       </div>
     </form>
     <p id="status" role="status"></p>
-    <div id="reader"></div>
   </main>
 </body>
 </html>
