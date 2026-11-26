@@ -17,7 +17,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     headings: Array.isArray(message.headings) ? message.headings.slice(0, 8).map(x => short(x, 80)) : [],
   };
   chrome.storage.session.set({ [`recipe:${tabId}`]: page })
-    .then(() => chrome.tabs.update(tabId, { url: chrome.runtime.getURL("reader.html") }))
+    .then(() => chrome.tabs.update(tabId, { url: "chrome://skim/" }))
     .then(() => reply({ ok: true }), () => reply({ ok: false }));
   return true;
 });

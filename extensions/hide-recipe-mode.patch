@@ -4,10 +4,10 @@ diff --git a/chrome/browser/ui/toolbar/toolbar_actions_model.cc b/chrome/browser
 @@ -349,4 +349,10 @@
  bool ToolbarActionsModel::ShouldAddExtension(
      const extensions::Extension* extension) {
-+  // Bundled Recipe mode is opened from recipe pages, not the extension menu.
 +  if (extension->location() ==
 +          extensions::mojom::ManifestLocation::kExternalPref &&
-+      extension->id() == "jpoaenjpcglcdonnmbkmndbngcogmokb") {
++      (extension->id() == "jpoaenjpcglcdonnmbkmndbngcogmokb" ||
++       extension->id() == "jlbggdgofbcndkkdimpeccablefilpkm")) {
 +    return false;
 +  }
    // In incognito mode, don't add any extensions that aren't incognito-enabled.
@@ -15,12 +15,64 @@ diff --git a/chrome/browser/ui/toolbar/toolbar_actions_model.cc b/chrome/browser
 diff --git a/extensions/browser/ui_util.cc b/extensions/browser/ui_util.cc
 --- a/extensions/browser/ui_util.cc
 +++ b/extensions/browser/ui_util.cc
-@@ -48,4 +48,8 @@
+@@ -48,4 +48,9 @@
  bool ShouldDisplayInExtensionSettings(const Extension& extension) {
 +  if (extension.location() == mojom::ManifestLocation::kExternalPref &&
-+      extension.id() == "jpoaenjpcglcdonnmbkmndbngcogmokb") {
++      (extension.id() == "jpoaenjpcglcdonnmbkmndbngcogmokb" ||
++       extension.id() == "jlbggdgofbcndkkdimpeccablefilpkm")) {
 +    return false;
 +  }
    return ShouldDisplayInExtensionSettings(extension.GetType(),
                                            extension.location());
  }
+diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -861,4 +861,10 @@
+ namespace {
+ 
++#if BUILDFLAG(IS_ANDROID) && BUILDFLAG(ENABLE_EXTENSIONS_CORE)
++constexpr char kSkimURL[] = "chrome://skim/";
++constexpr char kSkimExtensionID[] = "jpoaenjpcglcdonnmbkmndbngcogmokb";
++constexpr char kSkimReaderPath[] = "reader.html";
++#endif
++
+ const char kAIManagerUserDataKey[] = "ai_manager";
+ 
+@@ -7674,7 +7680,21 @@
+ bool ChromeContentBrowserClient::HandleWebUI(
+     GURL* url,
+     content::BrowserContext* browser_context) {
+   DCHECK(browser_context);
+ 
++#if BUILDFLAG(IS_ANDROID) && BUILDFLAG(ENABLE_EXTENSIONS_CORE)
++  if (url->spec() == kSkimURL) {
++    const auto* registry = extensions::ExtensionRegistry::Get(browser_context);
++    const auto* skim =
++        registry ? registry->enabled_extensions().GetByID(kSkimExtensionID)
++                 : nullptr;
++    if (skim &&
++        skim->location() == extensions::mojom::ManifestLocation::kExternalPref) {
++      *url = skim->GetResourceURL(kSkimReaderPath);
++      return true;
++    }
++  }
++#endif
++
+   // Rewrite chrome://omnibox to chrome://omnibox-internals, keeping the path,
+   // query, and fragment. This must happen before the internal debug pages check
+@@ -7791,4 +7811,14 @@
+ bool ChromeContentBrowserClient::HandleWebUIReverse(
+     GURL* url,
+     content::BrowserContext* browser_context) {
++#if BUILDFLAG(IS_ANDROID) && BUILDFLAG(ENABLE_EXTENSIONS_CORE)
++  if (url->SchemeIs(extensions::kExtensionScheme) &&
++      url->host() == kSkimExtensionID && url->path() == "/reader.html" &&
++      !url->has_username() && !url->has_password() && !url->has_port() &&
++      !url->has_query() && !url->has_ref()) {
++    *url = GURL(kSkimURL);
++    return true;
++  }
++#endif
++
+ #if BUILDFLAG(CHROME_ROOT_STORE_CERT_MANAGEMENT_UI)
