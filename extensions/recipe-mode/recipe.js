@@ -24,6 +24,34 @@
       document.querySelector('[itemtype$="/SearchResultsPage"]') !== null;
   }
 
+  function siteAccent(root) {
+    const theme = [...document.querySelectorAll('meta[name="theme-color"]')]
+      .filter(meta => !meta.media || matchMedia(meta.media).matches)
+      .map(meta => meta.content);
+    const header = document.querySelector("header, [role=banner]");
+    const top = document.elementsFromPoint(innerWidth / 2, Math.min(90, innerHeight / 3));
+    const elements = [header, ...top.slice(0, 8), root.querySelector("a[href]")].filter(Boolean);
+    const colors = [...theme, ...elements.map(node => getComputedStyle(node).backgroundColor),
+      ...elements.map(node => getComputedStyle(node).color)];
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const pixel = canvas.getContext("2d", { willReadFrequently: true });
+    if (!pixel) return null;
+    for (const color of colors) {
+      if (!color || !CSS.supports("color", color)) continue;
+      pixel.clearRect(0, 0, 1, 1);
+      pixel.fillStyle = color;
+      pixel.fillRect(0, 0, 1, 1);
+      const [r, g, b, alpha] = pixel.getImageData(0, 0, 1, 1).data;
+      const min = Math.min(r, g, b), max = Math.max(r, g, b), range = max - min;
+      if (alpha < 230 || range < 28 || max < 45 || (r === 0 && g === 0 && b === 238)) continue;
+      let hue = max === r ? (g - b) / range : max === g ? (b - r) / range + 2 : (r - g) / range + 4;
+      hue = (hue * 60 + 360) % 360;
+      return Math.round(hue);
+    }
+    return null;
+  }
+
   function scan() {
     if (isSearchPage(new URL(location.href))) return null;
     const headline = document.querySelector("h1");
@@ -56,7 +84,7 @@
       } catch { return ""; }
     }).find(Boolean) || "";
 
-    return { root, recipe, image, title: clean(recipe?.name) || clean(headline?.textContent) || document.title,
+    return { root, recipe, image, accent: siteAccent(root), title: clean(recipe?.name) || clean(headline?.textContent) || document.title,
       headings: headings.map(node => clean(node.textContent)).filter(Boolean).slice(0, 8) };
   }
 
@@ -66,11 +94,11 @@
   const style = document.createElement("style");
   style.textContent = `
     button { display:block; pointer-events:auto; margin:0 auto max(18px,env(safe-area-inset-bottom));
-      font:600 16px/1.45 system-ui,sans-serif; color:#fff; background:#305d3c; border:0;
+      font:600 16px/1.45 system-ui,sans-serif; color:#fff; background:hsl(var(--site-hue, 137) 38% 27%); border:0;
       border-radius:100px; min-height:48px; padding:0 22px; box-shadow:0 3px 16px #0003;
       transition:scale .18s cubic-bezier(.2,0,0,1); }
     button:active { scale:.96; }
-    @media (prefers-color-scheme:dark) { button { background:#bee4af; color:#14341f; } }
+    @media (prefers-color-scheme:dark) { button { background:hsl(var(--site-hue, 137) 43% 79%); color:#17211a; } }
     @media (prefers-reduced-motion:reduce) { button { transition:none; } }
   `;
   const launch = document.createElement("button");
@@ -82,6 +110,8 @@
     lastUrl = location.href;
     current = scan();
     if (!current) { host.remove(); return; }
+    if (current.accent == null) launch.style.removeProperty("--site-hue");
+    else launch.style.setProperty("--site-hue", String(current.accent));
     const locale = document.documentElement.lang || document.querySelector('meta[property="og:locale"]')?.content || "";
     const hebrew = /^(he|iw)([-_]|$)/i.test(locale) || /[\u0590-\u05ff]/.test(current.title);
     launch.textContent = hebrew ? "מצב מתכון" : "Recipe mode";
@@ -100,6 +130,7 @@
         structured: current.recipe ? JSON.stringify(current.recipe).slice(0, 12000) : "",
         headings: current.headings,
         image: current.image,
+        accent: current.accent,
         language: document.documentElement.lang || "",
         direction: document.documentElement.dir,
       });

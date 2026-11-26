@@ -11,6 +11,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     text: short(message.text, 32000),
     structured: short(message.structured, 12000),
     image: short(message.image, 2048),
+    accent: Number.isInteger(message.accent) && message.accent >= 0 && message.accent <= 360 ? message.accent : null,
     language: short(message.language, 24),
     direction: ["rtl", "ltr"].includes(message.direction) ? message.direction : "",
     headings: Array.isArray(message.headings) ? message.headings.slice(0, 8).map(x => short(x, 80)) : [],

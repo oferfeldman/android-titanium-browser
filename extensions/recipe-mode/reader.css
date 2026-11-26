@@ -6,36 +6,58 @@
 }
 :root {
   color-scheme: light dark;
-  --paper:#f5f8f3; --card:#fff; --ink:#182b20; --muted:#506258; --rule:#d3e0d5; --accent:#305d3c;
+  --site-hue:137;
+  --outer-radius:20px; --join-radius:4px; --card-padding:12px; --stack-gap:2px;
+  --inset-radius:calc(var(--outer-radius) - var(--card-padding));
+  --paper:hsl(var(--site-hue) 19% 96%); --card:hsl(var(--site-hue) 17% 99%);
+  --inset:hsl(var(--site-hue) 20% 93%); --rule:hsl(var(--site-hue) 14% 83%);
+  --ink:#18251e; --muted:#465449; --accent:hsl(var(--site-hue) 38% 27%);
 }
 @media (prefers-color-scheme:dark) {
-  :root { --paper:#17211a; --card:#232f26; --ink:#eef4eb; --muted:#bdcbbc; --rule:#46564a; --accent:#bee4af; }
+  :root {
+    --paper:hsl(var(--site-hue) 14% 11%); --card:hsl(var(--site-hue) 14% 17%);
+    --inset:hsl(var(--site-hue) 15% 22%); --rule:hsl(var(--site-hue) 13% 33%);
+    --ink:#eef4eb; --muted:#bdcbbc; --accent:hsl(var(--site-hue) 43% 79%);
+  }
 }
 * { box-sizing:border-box; }
 [hidden] { display:none!important; }
 body { margin:0; background:var(--paper); color:var(--ink); font:500 1rem/1.5 Feldman,system-ui,sans-serif; }
-main { max-width:54rem; margin:auto; padding:16px clamp(16px,4vw,32px) 40px; overflow-wrap:anywhere; }
+main { max-width:54rem; margin:auto; padding:16px clamp(16px,4vw,32px) 32px; overflow-wrap:anywhere; }
 nav,.controls { display:flex; align-items:center; flex-wrap:wrap; justify-content:space-between; gap:8px; }
 nav { margin-bottom:12px; }
 a { color:var(--accent); }
-button,input { font:inherit; color:inherit; background:var(--card); min-height:44px; border:1px solid var(--rule); border-radius:16px; padding:6px 12px; }
+button,input { font:inherit; color:inherit; background:var(--inset); min-height:44px; border:1px solid var(--rule); border-radius:var(--inset-radius); padding:6px 12px; }
+nav button { border-radius:var(--outer-radius); }
 button { cursor:pointer; }
 button:active { transform:scale(.96); }
 input { width:100%; max-width:29ch; }
 input[type="number"] { width:7ch; }
 #status { color:var(--muted); }
 #status:empty { display:none; }
-.card { padding:clamp(15px,4vw,24px); border:1px solid var(--rule); border-radius:22px; background:var(--card); margin-block:10px; }
+#credentials { margin-block:12px; }
+#reader,.motion-items { display:grid; gap:var(--stack-gap); }
+.card {
+  --top-radius:var(--outer-radius); --bottom-radius:var(--outer-radius);
+  padding:var(--card-padding); border-radius:var(--top-radius) var(--top-radius) var(--bottom-radius) var(--bottom-radius);
+  background:var(--card);
+}
+#reader > .card:not(:first-child) { --top-radius:var(--join-radius); }
+#reader > .card:not(:last-child) { --bottom-radius:var(--join-radius); }
 h1,h2,p,dl,dd,ol,ul { margin:0; }
 h1 { font-size:clamp(1.75rem,6vw,3rem); line-height:1.13; }
 h2 { color:var(--accent); font-size:1.06rem; margin-block-end:10px; }
 p { margin-block:.65rem; white-space:pre-line; }
-.hero img { display:block; width:100%; max-height:360px; aspect-ratio:16/9; object-fit:cover; border-radius:16px; margin-block-end:16px; }
-.row { display:grid; grid-template-columns:minmax(0,1fr) minmax(4.75rem,34%); gap:12px; align-items:baseline; padding-block:9px; }
-.row+.row,li+li { border-block-start:1px solid var(--rule); }
+.hero img { display:block; width:100%; max-height:360px; aspect-ratio:16/9; object-fit:cover; border-radius:var(--inset-radius); margin-block-end:12px; }
+.row { display:grid; grid-template-columns:minmax(0,1fr) minmax(4.75rem,34%); gap:12px; align-items:baseline; }
+.motion-items > * { background:var(--inset); border-radius:var(--join-radius); padding:8px; }
+.motion-items > :first-child { border-start-start-radius:var(--inset-radius); border-start-end-radius:var(--inset-radius); }
+.motion-items > :last-child { border-end-start-radius:var(--inset-radius); border-end-end-radius:var(--inset-radius); }
 dd { text-align:end; color:var(--accent); font-weight:650; font-variant-numeric:tabular-nums; }
-ol,ul { padding-inline-start:1.5em; }
-li { padding-block:8px; }
+ol,ul { padding:0; list-style:none; }
+ol { counter-reset:step; }
+ol li { display:flex; gap:8px; align-items:baseline; counter-increment:step; }
+ol li::before { content:counter(step); color:var(--accent); font-weight:700; flex:none; min-width:1.2em; }
 .controls { justify-content:start; }
 .controls label { display:flex; align-items:center; gap:6px; }
 input[type="checkbox"] { width:auto; min-height:0; accent-color:var(--accent); }

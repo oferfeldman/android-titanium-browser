@@ -61,7 +61,7 @@ function render(result, complete) {
     const card = make("section", null, "card");
     card.append(make("h2", section.title));
     const ingredients = section.kind === "ingredients";
-    const list = make(ingredients ? "dl" : section.kind === "steps" ? "ol" : "ul");
+    const list = make(ingredients ? "dl" : section.kind === "steps" ? "ol" : "ul", null, "motion-items");
     for (const row of section.rows) {
       if (ingredients) {
         const entry = make("div", null, "row");
@@ -191,6 +191,7 @@ if (!page) {
   status.textContent = "Return to a recipe page and open Recipe mode again.";
   byId("account").hidden = true;
 } else {
+  if (page.accent != null) document.documentElement.style.setProperty("--site-hue", String(page.accent));
   setLanguage(page.language, page.direction);
   byId("original").href = page.url;
   reader.append(hero(page.title));

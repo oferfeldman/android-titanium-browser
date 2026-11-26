@@ -1,0 +1,26 @@
+diff --git a/chrome/browser/ui/toolbar/toolbar_actions_model.cc b/chrome/browser/ui/toolbar/toolbar_actions_model.cc
+--- a/chrome/browser/ui/toolbar/toolbar_actions_model.cc
++++ b/chrome/browser/ui/toolbar/toolbar_actions_model.cc
+@@ -349,4 +349,10 @@
+ bool ToolbarActionsModel::ShouldAddExtension(
+     const extensions::Extension* extension) {
++  // Bundled Recipe mode is opened from recipe pages, not the extension menu.
++  if (extension->location() ==
++          extensions::mojom::ManifestLocation::kExternalPref &&
++      extension->id() == "jpoaenjpcglcdonnmbkmndbngcogmokb") {
++    return false;
++  }
+   // In incognito mode, don't add any extensions that aren't incognito-enabled.
+   if (profile_->IsOffTheRecord() &&
+diff --git a/extensions/browser/ui_util.cc b/extensions/browser/ui_util.cc
+--- a/extensions/browser/ui_util.cc
++++ b/extensions/browser/ui_util.cc
+@@ -48,4 +48,8 @@
+ bool ShouldDisplayInExtensionSettings(const Extension& extension) {
++  if (extension.location() == mojom::ManifestLocation::kExternalPref &&
++      extension.id() == "jpoaenjpcglcdonnmbkmndbngcogmokb") {
++    return false;
++  }
+   return ShouldDisplayInExtensionSettings(extension.GetType(),
+                                           extension.location());
+ }
