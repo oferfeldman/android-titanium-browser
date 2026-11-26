@@ -86,16 +86,15 @@
   const shadow = host.attachShadow({ mode: "closed" });
   const style = document.createElement("style");
   style.textContent = `
-    :host { font: 500 16px/1.45 system-ui,sans-serif; color:#17291d; }
     * { box-sizing:border-box; }
     button,a { font:inherit; }
     button { cursor:pointer; }
-    .launch,.panel { pointer-events:auto; }
+    .launch,.panel { pointer-events:auto; font:500 16px/1.45 system-ui,sans-serif; }
     .launch { display:block; margin:0 auto max(18px,env(safe-area-inset-bottom)); color:#fff;
       background:#305d3c; border:0; border-radius:100px; min-height:48px; padding:0 22px;
       box-shadow:0 3px 16px #0003; transition:scale .18s cubic-bezier(.2,0,0,1); }
     .launch:active { scale:.96; }
-    dialog { color:inherit; background:#f4f8ef; border:0; border-radius:24px 24px 0 0; inset:auto 0 0;
+    dialog { color:#17291d; background:#f4f8ef; border:0; border-radius:24px 24px 0 0; inset:auto 0 0;
       width:min(100%,560px); max-width:none; max-height:min(85dvh,740px); margin:0 auto;
       padding:18px 18px max(22px,env(safe-area-inset-bottom)); text-align:start; color-scheme:light; }
     dialog::backdrop { background:#0006; }
@@ -110,7 +109,7 @@
     p { margin:8px 0; }
     a { display:inline-flex; align-items:center; min-height:44px; color:#305d3c; }
     @media (prefers-color-scheme:dark) {
-      :host { color:#eef4eb; } dialog { background:#17211a; color-scheme:dark; }
+      dialog { color:#eef4eb; background:#17211a; color-scheme:dark; }
       section { background:#232f26; } section,li+li { border-color:#3d5040; }
       .launch { background:#bee4af; color:#14341f; } a { color:#bee4af; }
     }
